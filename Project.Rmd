@@ -1,0 +1,116 @@
+---
+title: |
+  | MONTHLY PRODUCTION OF CLAY BRICKS 
+  | Grp4 - Project
+author: "Claudius Taylor, Tom Wilson, Junpu Zhao"
+date: "12/12/2018"
+output: pdf_document
+---
+\centering
+![](brick.png)
+\raggedright
+\clearpage
+
+```{r results='hide', echo=FALSE, include=FALSE,}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+# library chunks
+library(dplyr)
+library(data.table)
+library(astsa)
+library(forecast)
+```
+
+INTRODUCTION: {-}
+---
+## The aims of this study are to identify and forecast a model best fitting brick production data in the United States. The method of maximum likelihood was used to estimate the parameters and to forecast the number of production in the future. The data is a twenty year period from 1960 to 1980 and was obtained from the Time Series Data library at datamarket.com website. 
+This project is of utmost importance and relevance because bricks are used for building and pavement all throughout the world. Being made from clay and shale, brick is most abundant and natural material on earth. In the USA, bricks were once used as a pavement material, and now it is more widely used as a decorative surface rather than a roadway material. A healthy living environment especially requires the use of the right building material. In general building materials are strongly influencing the indoor climate and quality of living.
+---
+\clearpage
+
+```{r}
+# loading the data
+data = ("/Users/taylormade/Desktop/Time Series/claybrick.csv")
+columnNames = c("month", "production") 
+brick = read.csv(file = data,
+                 comment.char = "",
+                 header = TRUE,
+                 col.names = columnNames)
+brick = ts(brick$production, start = 1960, end = 1980, frequency = 12)
+plot(brick)
+acf2(brick)[0]
+```
+
+## The graph shows a trend and seasonal variations in the number of coal production every year. A distinct trough is shown in 1979. The random fluctuations seem constant over time.
+
+```{r}
+# decomposing the data
+decomp.brick = decompose(brick, type="additive")
+plot(decomp.brick)
+decomp.brick$figure # seasonal effects for each quarter
+seasonplot(brick, col=rainbow(12), year.labels=TRUE, labelgap = 0.35, type = "l")
+monthplot(brick, col = 4, lwd = 1.5)
+boxplot(brick ~ cycle(brick), col=rainbow(12))
+```
+
+```{r}
+brick.d = acf2(diff(brick), 48)[0]
+```
+
+## Even with the first order of differencing, we observe that there is still slow residual decay in the ACF plots at a seasonal lag period of 12. This thus suggest a seasonal difference to be applied.
+
+```{r}
+acf2(diff(diff(brick), 12), 48)[0]
+```
+
+##  From the seasonal lag perspective, we can see that the ACF cuts off at the 2nd seasonal lag, while the PACF appears to tail off. This would suggest a SARMA model of (0,2).
+## Within the first seasonal cycle, it can be seen that PACF appears to be cutting off at lag = 3, while the ACF tails off.Thus a proposed model can be ARMA (3,0) x (0,2)_12 for the differenced time series.
+
+```{r}
+brick.fit = arima(brick, order = c(3,1,0),
+                  seasonal = list(order = c(3,1,0), period = 12),
+                  include.mean = FALSE)
+brick.fit
+```
+
+```{r}
+# generate predictions
+brick.pred = predict(brick.fit, n.ahead = 12) # predict 12 periods ahead
+plot(brick, type = "l", xlab = "Year", ylab = "Production") #  xlim=c(1970,1980), ylim=c(50,200), 
+lines(brick.pred$pred, col = "blue") # mean of predictions into future (actual)
+lines(brick.pred$pred + 2*brick.pred$se, col = "red") # prediction bounds +1.96
+lines(brick.pred$pred - 2*brick.pred$se, col = "red") # prediction bounds -1.96
+```
+
+```{r echo=FALSE}
+# residuals analysis
+par(mfrow=c(1,2))
+acf(ts(brick.fit$residuals),main='ACF Residual')
+pacf(ts(brick.fit$residuals),main='PACF Residual')
+```
+
+```{r}
+sarima(brick, 3,1,0, 0,1,2, 12)[0]
+auto.arima(brick)
+sarima.for(brick, 10, 1,0,3, 0,1,2, 12)
+```
+
+CONCLUSION: {-}
+---
+In this project, to conclude, there are several things we have done. - Firstly we try to analyze the basic pattern of the unadjusted brick production data in US, which indicates that there are some seasonal pattern and significant long term linear trend. We fit a SARIMA model for our data. We choose the best version of the SARIMA model, and do some prediction for the future. Based on the model diagnostics, we can see that the model does fit fine for earlier lags, although there might still be some outliers in the data with unexplained variance (as shown in the Normal QQ plot, and the standardised residuals).
+---
+
+\clearpage
+
+REFERENCES: {-}
+---
+## https://www.datamarket.com: SOURCE OF DATA
+
+## https://www.eia.gov/totalenergy/data/annual
+
+## www.claybrick.org
+
+## "Trends in Brick Plant Operation,"  The American Ceramic Society Bulletin. 1992, pp.69-74
+  
+## "Brick Manufacturing from Past to Present," The American Ceramic Society Bulletin. May, 1990, pp.807-813
+  
+---
