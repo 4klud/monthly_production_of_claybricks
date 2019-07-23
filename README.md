@@ -1,0 +1,2 @@
+# monthly_production_of_claybricks
+The aims of this study are to identify and forecast a model best fitting brick production data in the United States. The method of maximum likelihood was used to estimate the parameters and to forecast the number of production in the future. The data is a twenty year period from 1960 to 1980 and was obtained from the Time Series Data library at datamarket.com website. 
